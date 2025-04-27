@@ -21,4 +21,4 @@ The Air Fryer App is a simple web application designed to help users find cookin
 - Craig Heggie
 
 ## Availability
-- URL - https://airfryertemp.netlify.app/
+- URL - https://airfry.netlify.app/
