@@ -17,12 +17,13 @@ const IdentifyFoodInputSchema = z.object({
 export type IdentifyFoodInput = z.infer<typeof IdentifyFoodInputSchema>;
 
 const IdentifyFoodOutputSchema = z.object({
-  foodName: z.string().describe('The identified name of the food item.'),
+  foodName: z.string().describe('The identified name of the food item. If uncertain, provide best guess but lower confidence.'),
   cookingTimeMinutes: z.number().describe('The cooking time **strictly in minutes as a number** (e.g., 15).'),
   cookingTemperatureCelsius: z.string().describe('The cooking temperature in Celsius (e.g., "180").'),
   calorieEstimate: z.number().optional().describe('An estimated calorie count for a typical serving **as a number**.'),
   menuSuggestions: z.array(z.string()).optional().describe('A list of 2-3 suggested menu items or side dishes that pair well with the food.'),
   drinkSuggestion: z.string().optional().describe('A suggested drink pairing for the food item.'),
+  identificationConfidence: z.number().min(0).max(100).optional().describe('Your confidence score (0-100) in the foodName identification based on the image quality and clarity.'),
 });
 export type IdentifyFoodOutput = z.infer<typeof IdentifyFoodOutputSchema>;
 
@@ -47,12 +48,13 @@ You will identify the food item in the photo. Then provide:
 2.  An estimated calorie count **as a number** for a typical serving.
 3.  A list of 2-3 suggested menu items or side dishes that pair well.
 4.  A suggested drink pairing.
+5.  Your **confidence score (an integer number between 0 and 100)** in identifying the correct 'foodName', based on the image clarity and distinctiveness of the food.
 
 Use the following as the primary source of information about the food.
 
 Photo: {{media url=photoUrl}}
 
-Respond ONLY with the structured data matching the output schema. Ensure cookingTimeMinutes and calorieEstimate are numbers.
+Respond ONLY with the structured data matching the output schema. Ensure cookingTimeMinutes, calorieEstimate, and identificationConfidence are numbers.
 `,
 });
 
