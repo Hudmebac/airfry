@@ -1,0 +1,89 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 36, 47%, 96%; /* Beige */
+    --foreground: 24, 7%, 10%;
+    --card: 36, 47%, 96%; /* Beige */
+    --card-foreground: 24, 7%, 10%;
+    --popover: 36, 47%, 96%; /* Beige */
+    --popover-foreground: 24, 7%, 10%;
+    --primary: 21, 59%, 33%; /* Light Brown */
+    --primary-foreground: 30, 62%, 98%;
+    --secondary: 39, 28%, 86%;
+    --secondary-foreground: 24, 7%, 10%;
+    --muted: 39, 28%, 86%;
+    --muted-foreground: 24, 7%, 46%;
+    --accent: 180, 100%, 15%; /* Teal */
+    --accent-foreground: 30, 62%, 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24, 7%, 73%;
+    --input: 24, 7%, 73%;
+    --ring: 21, 59%, 33%; /* Light Brown */
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 36, 47%, 98%; /* Beige */
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --background: 24, 7%, 10%;
+    --foreground: 36, 47%, 96%;
+    --card: 24, 7%, 10%;
+    --card-foreground: 36, 47%, 96%;
+    --popover: 24, 7%, 10%;
+    --popover-foreground: 36, 47%, 96%;
+    --primary: 30, 62%, 98%;
+    --primary-foreground: 21, 59%, 33%; /* Light Brown */
+    --secondary: 24, 7%, 23%;
+    --secondary-foreground: 36, 47%, 96%;
+    --muted: 24, 7%, 23%;
+    --muted-foreground: 24, 7%, 57%;
+    --accent: 180, 100%, 77%; /* Teal */
+    --accent-foreground: 24, 7%, 10%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24, 7%, 23%;
+    --input: 24, 7%, 23%;
+    --ring: 30, 62%, 77%; /* Light Brown */
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
