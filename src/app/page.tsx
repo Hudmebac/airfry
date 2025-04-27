@@ -5,12 +5,29 @@ import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {toast} from '@/hooks/use-toast';
-import {CameraIcon, UploadIcon, RefreshCwIcon, Loader2, SearchIcon, RotateCcwIcon} from 'lucide-react';
+import {CameraIcon, UploadIcon, RefreshCwIcon, Loader2, SearchIcon, RotateCcwIcon, Info, Star, StarOff, History, Share2, Copy} from 'lucide-react';
 import Image from 'next/image';
 import {useRef, useState, useEffect, useCallback} from 'react';
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { generateCookingInstructions } from '@/ai/flows/generate-cooking-instructions';
+import {
+  Dialog as ShareDialog,
+  DialogTrigger as ShareDialogTrigger,
+  DialogContent as ShareDialogContent,
+  DialogHeader as ShareDialogHeader,
+  DialogTitle as ShareDialogTitle,
+  DialogDescription as ShareDialogDescription
+} from '@/components/ui/dialog';
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -24,11 +41,92 @@ export default function Home() {
   const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
   const [isCameraInitializing, setIsCameraInitializing] = useState(false);
   const [identificationError, setIdentificationError] = useState<string | null>(null);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
+  const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const timerAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [manualFoodName, setManualFoodName] = useState('');
+  const [foodHistory, setFoodHistory] = useState<{ name: string; favorite: boolean }[]>([]);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
+  const [sharePlatform, setSharePlatform] = useState<'facebook' | 'whatsapp' | null>(null);
 
   useEffect(() => {
     setCookingInfo(null);
     setIdentificationError(null);
   }, [imageUrl]);
+
+  // Load history from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('airfryer_food_history');
+    if (stored) {
+      setFoodHistory(JSON.parse(stored));
+    }
+  }, []);
+
+  // Save history to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('airfryer_food_history', JSON.stringify(foodHistory));
+  }, [foodHistory]);
+
+  // Add food to history (and optionally favorite)
+  const addFoodToHistory = useCallback((name: string, favorite = false) => {
+    setFoodHistory(prev => {
+      // Remove if already exists (case-insensitive)
+      let filtered = prev.filter(f => f.name.toLowerCase() !== name.toLowerCase());
+      // Add to top
+      filtered = [{ name, favorite }, ...filtered];
+      // If favorited, move to top and set favorite
+      if (favorite) {
+        filtered = [
+          { name, favorite: true },
+          ...filtered.filter(f => f.name.toLowerCase() !== name.toLowerCase())
+        ];
+      }
+      // Limit to 10 items, but always keep all favorites
+      const favorites = filtered.filter(f => f.favorite);
+      const recents = filtered.filter(f => !f.favorite).slice(0, 10 - favorites.length);
+      return [...favorites, ...recents];
+    });
+  }, []);
+
+  // When instructions are shown, add to history
+  useEffect(() => {
+    if (cookingInfo?.foodName) {
+      addFoodToHistory(cookingInfo.foodName);
+    }
+  }, [cookingInfo]);
+
+  // Toggle favorite
+  const toggleFavorite = useCallback((name: string) => {
+    setFoodHistory(prev => prev.map(f => f.name === name ? { ...f, favorite: !f.favorite } : f));
+  }, []);
+
+  // Handle click on history/favorite
+  const handleHistoryClick = useCallback(async (name: string) => {
+    setManualFoodName(name);
+    setIsLoadingInstructions(true);
+    setCookingInfo(null);
+    setIdentificationError(null);
+    try {
+      const result = await generateCookingInstructions({ foodName: name });
+      setCookingInfo({
+        foodName: name,
+        cookingTimeMinutes: parseInt(result.cookingTime, 10),
+        cookingTemperatureCelsius: result.cookingTemperatureCelsius,
+        identificationConfidence: 100,
+      });
+    } catch (e: any) {
+      setIdentificationError(e.message || 'Could not get instructions for this food.');
+      toast({
+        title: 'Error',
+        description: 'Failed to get cooking instructions.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingInstructions(false);
+    }
+  }, []);
 
   const initializeCamera = useCallback(async (requestedDeviceId: string | null = null) => {
     if (isCameraInitializing) return;
@@ -285,15 +383,190 @@ export default function Home() {
     // No need to re-init camera here, the view will update based on state
   }, []);
 
+  // Start timer with the given minutes
+  const handleStartTimer = useCallback(() => {
+    if (cookingInfo?.cookingTimeMinutes) {
+      setTimerSeconds(cookingInfo.cookingTimeMinutes * 60);
+      setTimerActive(true);
+    }
+  }, [cookingInfo]);
+
+  // Pause timer
+  const handlePauseTimer = useCallback(() => {
+    setTimerActive(false);
+  }, []);
+
+  // Resume timer
+  const handleResumeTimer = useCallback(() => {
+    if (timerSeconds && timerSeconds > 0) {
+      setTimerActive(true);
+    }
+  }, [timerSeconds]);
+
+  // Reset timer
+  const handleResetTimer = useCallback(() => {
+    setTimerActive(false);
+    setTimerSeconds(cookingInfo?.cookingTimeMinutes ? cookingInfo.cookingTimeMinutes * 60 : null);
+  }, [cookingInfo]);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (timerActive && timerSeconds && timerSeconds > 0) {
+      timerInterval.current = setInterval(() => {
+        setTimerSeconds((prev) => (prev !== null ? prev - 1 : null));
+      }, 1000);
+    } else if (!timerActive && timerInterval.current) {
+      clearInterval(timerInterval.current);
+    }
+    return () => {
+      if (timerInterval.current) clearInterval(timerInterval.current);
+    };
+  }, [timerActive, timerSeconds]);
+
+  // Request notification permission when timer starts
+  useEffect(() => {
+    if (timerActive && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, [timerActive]);
+
+  // Stop timer at 0 and play sound, show notification
+  useEffect(() => {
+    if (timerSeconds === 0) {
+      setTimerActive(false);
+      // Play sound when timer finishes
+      if (timerAudioRef.current) {
+        timerAudioRef.current.currentTime = 0;
+        timerAudioRef.current.play();
+      }
+      // Show browser notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Air Fryer Timer', {
+          body: 'Your cooking timer is done!',
+          icon: '/food-background.jpg',
+        });
+      }
+    }
+  }, [timerSeconds]);
+
+  // Handler for manual food entry
+  const handleManualFoodSubmit = useCallback(async () => {
+    if (!manualFoodName.trim()) return;
+    setIsLoadingInstructions(true);
+    setCookingInfo(null);
+    setIdentificationError(null);
+    try {
+      const result = await generateCookingInstructions({ foodName: manualFoodName.trim() });
+      // Adapt result to IdentifyFoodOutput shape for display
+      setCookingInfo({
+        foodName: manualFoodName.trim(),
+        cookingTimeMinutes: parseInt(result.cookingTime, 10),
+        cookingTemperatureCelsius: result.cookingTemperatureCelsius,
+        identificationConfidence: 100,
+      });
+    } catch (e: any) {
+      setIdentificationError(e.message || 'Could not get instructions for this food.');
+      toast({
+        title: 'Error',
+        description: 'Failed to get cooking instructions.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingInstructions(false);
+    }
+  }, [manualFoodName]);
+
+  // Generate dynamic share message
+  const getShareMessage = () => {
+    if (!cookingInfo) return '';
+    let msg = `I'm cooking ${cookingInfo.foodName}`;
+    if (cookingInfo.cookingTimeMinutes && cookingInfo.cookingTemperatureCelsius) {
+      msg += ` in the air fryer: ${cookingInfo.cookingTimeMinutes} min at ${cookingInfo.cookingTemperatureCelsius}°C.`;
+    }
+    if (cookingInfo.menuSuggestions && cookingInfo.menuSuggestions.length > 0) {
+      msg += ` Great with: ${cookingInfo.menuSuggestions.join(', ')}.`;
+    }
+    if (cookingInfo.drinkSuggestion) {
+      msg += ` Drink pairing: ${cookingInfo.drinkSuggestion}.`;
+    }
+    msg += ' #AirFryer';
+    return msg;
+  };
+
+  // Handle share button click
+  const handleShareClick = () => {
+    setShareMessage(getShareMessage());
+    setShareOpen(true);
+  };
+
+  // Handle Facebook share approval
+  const handleFacebookShare = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://airfry.netlify.app/')}&quote=${encodeURIComponent(shareMessage)}`;
+    window.open(url, '_blank');
+    setShareOpen(false);
+  };
+
+  // Handle WhatsApp share
+  const handleWhatsAppShare = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+    window.open(url, '_blank');
+    setShareOpen(false);
+  };
+
+  // Handle copy to clipboard
+  const handleCopyShare = async () => {
+    await navigator.clipboard.writeText(shareMessage);
+    toast({ title: 'Copied!', description: 'Message copied to clipboard.' });
+    setShareOpen(false);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-8 bg-background">
+      {/* Hidden audio element for timer sound */}
+      <audio ref={timerAudioRef} src="/timer-done.mp3" preload="auto" />
       <Card className="w-full max-w-4xl rounded-2xl shadow-2xl border-2 border-primary/30 bg-card/80 backdrop-blur-md">
-        <CardHeader className="text-center flex flex-col items-center gap-2">
+        <CardHeader className="text-center flex flex-col items-center gap-2 relative">
           <span className="text-4xl">🍳</span>
           <CardTitle className="text-3xl font-extrabold text-primary drop-shadow-sm flex items-center gap-2">
             Air Fryer Chef
           </CardTitle>
           <CardDescription className="text-muted-foreground">Upload or snap a photo of your food!</CardDescription>
+          {/* Info Button */}
+          <div className="absolute top-2 right-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="ghost" aria-label="Info">
+                  <Info className="h-6 w-6" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>How to Use</DialogTitle>
+                  <DialogDescription>
+                    <ul className="list-disc pl-5 space-y-1 text-left mt-2">
+                      <li>Take or upload a photo of your food using the camera or upload button.</li>
+                      <li>Click "Get Cooking Instructions" to receive air fryer time and temperature.</li>
+                      <li>Optionally, start a timer for the recommended cooking time.</li>
+                      <li>Browse suggested menu pairings and calorie info if available.</li>
+                    </ul>
+                    <hr className="my-4" />
+                    <div className="text-left">
+                      <h3 className="font-semibold mb-1">About This App</h3>
+                      <p className="mb-2">The Air Fryer App is a simple web application designed to help users find cooking times and temperatures for various food items using an air fryer. The app allows users to snap a photo of their food, upload images, and browse through a categorized list of food items.</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Camera Functionality: Take a photo of your food using the device's camera.</li>
+                        <li>Image Upload: Upload images of food items for identification.</li>
+                        <li>Food Database: Comprehensive database of food items with cooking times and temperatures.</li>
+                        <li>Group Selection: Select food categories to filter the displayed items.</li>
+                        <li>Responsive Design: Works on both desktop and mobile devices.</li>
+                      </ul>
+                      <div className="mt-3 text-xs text-muted-foreground">Author: Craig Heggie<br/>URL: <a href="https://airfry.netlify.app/" className="underline" target="_blank" rel="noopener noreferrer">https://airfry.netlify.app/</a></div>
+                    </div>
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
           <div className="flex flex-col space-y-4">
@@ -400,6 +673,118 @@ export default function Home() {
 
                 <Separator />
 
+                {/* Manual Food Entry */}
+                <div className="flex flex-col md:flex-row items-center gap-2 mb-2">
+                  <Input
+                    type="text"
+                    placeholder="Type food name (e.g. chicken wings)"
+                    value={manualFoodName}
+                    onChange={e => setManualFoodName(e.target.value)}
+                    className="max-w-xs"
+                    disabled={isLoadingInstructions}
+                    onKeyDown={e => { if (e.key === 'Enter') handleManualFoodSubmit(); }}
+                    aria-label="Manual food name entry"
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={handleManualFoodSubmit}
+                    disabled={!manualFoodName.trim() || isLoadingInstructions}
+                    aria-label="Get Instructions for Manual Food Name"
+                  >
+                    Get Instructions
+                  </Button>
+                </div>
+
+                {/* Favorites/History */}
+                {foodHistory.length > 0 && (
+                  <div className="mb-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <History className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground font-semibold">Recent & Favorite Foods</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {foodHistory.map(f => (
+                        <div key={f.name} className="flex items-center gap-1 bg-muted rounded px-2 py-1 cursor-pointer hover:bg-secondary/80 transition"
+                          onClick={() => handleHistoryClick(f.name)}
+                          tabIndex={0}
+                          aria-label={`Get instructions for ${f.name}`}
+                          onKeyDown={e => { if (e.key === 'Enter') handleHistoryClick(f.name); }}
+                        >
+                          <span className="font-medium text-sm">{f.name}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="p-1"
+                            onClick={e => { e.stopPropagation(); toggleFavorite(f.name); }}
+                            aria-label={f.favorite ? `Unfavorite ${f.name}` : `Favorite ${f.name}`}
+                            tabIndex={-1}
+                          >
+                            {f.favorite ? <Star className="h-4 w-4 text-yellow-400 fill-yellow-300" /> : <StarOff className="h-4 w-4 text-muted-foreground" />}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Share Button and Dialog */}
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={handleShareClick} aria-label="Share Cooking Instructions">
+                    <Share2 className="h-4 w-4 mr-1" /> Share
+                  </Button>
+                </div>
+                <ShareDialog open={shareOpen} onOpenChange={setShareOpen}>
+                  <ShareDialogContent>
+                    <ShareDialogHeader>
+                      <ShareDialogTitle>Share Your Meal</ShareDialogTitle>
+                      <ShareDialogDescription>
+                        <div className="mb-2">Choose how you want to share your meal and instructions:</div>
+                        <div className="flex flex-col gap-2">
+                          <Button variant="secondary" onClick={() => setSharePlatform('facebook')}>
+                            Share on Facebook
+                          </Button>
+                          <Button variant="secondary" onClick={() => setSharePlatform('whatsapp')}>
+                            Share on WhatsApp
+                          </Button>
+                          <Button variant="outline" onClick={handleCopyShare}>
+                            <Copy className="h-4 w-4 mr-1" /> Copy to Clipboard
+                          </Button>
+                        </div>
+                        {sharePlatform === 'facebook' && (
+                          <div className="mt-4">
+                            <div className="font-semibold mb-1">Facebook Post Preview:</div>
+                            <textarea
+                              className="w-full border rounded p-2 text-sm"
+                              rows={4}
+                              value={shareMessage}
+                              onChange={e => setShareMessage(e.target.value)}
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <Button variant="default" onClick={handleFacebookShare}>Approve & Share</Button>
+                              <Button variant="ghost" onClick={() => setSharePlatform(null)}>Cancel</Button>
+                            </div>
+                          </div>
+                        )}
+                        {sharePlatform === 'whatsapp' && (
+                          <div className="mt-4">
+                            <div className="font-semibold mb-1">WhatsApp Message Preview:</div>
+                            <textarea
+                              className="w-full border rounded p-2 text-sm"
+                              rows={4}
+                              value={shareMessage}
+                              onChange={e => setShareMessage(e.target.value)}
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <Button variant="default" onClick={handleWhatsAppShare}>Send to WhatsApp</Button>
+                              <Button variant="ghost" onClick={() => setSharePlatform(null)}>Cancel</Button>
+                            </div>
+                          </div>
+                        )}
+                      </ShareDialogDescription>
+                    </ShareDialogHeader>
+                  </ShareDialogContent>
+                </ShareDialog>
+
                 <div className="p-4 border-2 border-secondary/30 rounded-xl bg-secondary/60 min-h-[220px] flex flex-col justify-center shadow-sm">
                 {isLoadingInstructions ? (
                     <p className="text-center text-muted-foreground">Checking the cookbook...</p>
@@ -433,6 +818,45 @@ export default function Home() {
                          </TooltipContent>
                        </Tooltip>
                        {" "}{cookingInfo.cookingTimeMinutes} min
+                       {/* Timer Button and UI */}
+                       {typeof cookingInfo.cookingTimeMinutes === 'number' && (
+                         <div className="mt-2">
+                           {!timerActive && timerSeconds === null && (
+                             <Button size="sm" variant="secondary" onClick={handleStartTimer}>
+                               Start Timer
+                             </Button>
+                           )}
+                           {timerSeconds !== null && (
+                             <div className="flex flex-col items-center gap-2 mt-2 w-full">
+                               <span className="font-mono text-lg">
+                                 {`${Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:${(timerSeconds % 60).toString().padStart(2, '0')}`}
+                               </span>
+                               {/* Progress Bar */}
+                               {cookingInfo?.cookingTimeMinutes && (
+                                 <div className="w-full h-3 bg-muted rounded-full overflow-hidden border border-secondary/40">
+                                   <div
+                                     className="h-full bg-primary transition-all duration-500"
+                                     style={{
+                                       width: `${Math.max(0, Math.min(100, (timerSeconds / (cookingInfo.cookingTimeMinutes * 60)) * 100))}%`,
+                                     }}
+                                   />
+                                 </div>
+                               )}
+                               <div className="flex items-center gap-2 mt-1">
+                                 {timerActive ? (
+                                   <Button size="sm" variant="outline" onClick={handlePauseTimer}>Pause</Button>
+                                 ) : timerSeconds > 0 ? (
+                                   <Button size="sm" variant="outline" onClick={handleResumeTimer}>Resume</Button>
+                                 ) : null}
+                                 <Button size="sm" variant="ghost" onClick={handleResetTimer}>Reset</Button>
+                               </div>
+                             </div>
+                           )}
+                           {timerSeconds === 0 && (
+                             <div className="text-green-600 font-bold mt-2">Time's up!</div>
+                           )}
+                         </div>
+                       )}
                      </p>
                      <p>
                        <Tooltip>
