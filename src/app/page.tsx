@@ -491,7 +491,7 @@ export default function Home() {
     if (cookingInfo.drinkSuggestion) {
       msg += `${cookingInfo.menuSuggestions && cookingInfo.menuSuggestions.length > 0 ? ',' : ''} and the Drink pairing of ${cookingInfo.drinkSuggestion}.`;
     }
-    msg += `\n#AirFryer \nLink: airfryer.netlify.app`;
+    msg += `\n#AirFry \nLink: airfry.netlify.app`;
     return msg;
   };
 
