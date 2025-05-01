@@ -479,17 +479,19 @@ export default function Home() {
   // Generate dynamic share message
   const getShareMessage = () => {
     if (!cookingInfo) return '';
-    let msg = `I'm cooking ${cookingInfo.foodName}`;
-    if (cookingInfo.cookingTimeMinutes && cookingInfo.cookingTemperatureCelsius) {
-      msg += ` in the air fryer: ${cookingInfo.cookingTimeMinutes} min at ${cookingInfo.cookingTemperatureCelsius}°C.`;
+    let msg = `I'm cooking ${cookingInfo.foodName} in the air fryer:`;
+    if (cookingInfo.cookingTimeMinutes) {
+      msg += ` only ${cookingInfo.cookingTimeMinutes} minutes to wait.`;
     }
+    // Menu suggestions
     if (cookingInfo.menuSuggestions && cookingInfo.menuSuggestions.length > 0) {
-      msg += ` Great with: ${cookingInfo.menuSuggestions.join(', ')}.`;
+      msg += ` The suggested choices to serve this with are ${cookingInfo.menuSuggestions.join(', ')}`;
     }
+    // Drink suggestion
     if (cookingInfo.drinkSuggestion) {
-      msg += ` Drink pairing: ${cookingInfo.drinkSuggestion}.`;
+      msg += `${cookingInfo.menuSuggestions && cookingInfo.menuSuggestions.length > 0 ? ',' : ''} and the Drink pairing of ${cookingInfo.drinkSuggestion}.`;
     }
-    msg += ' #AirFryer';
+    msg += `\n#AirFryer \nLink: airfryer.netlify.app`;
     return msg;
   };
 
