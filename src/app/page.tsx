@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/dialog';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {Textarea} from '@/components/ui/textarea';
+import {Mic, HelpCircle} from 'lucide-react';
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -52,6 +54,32 @@ export default function Home() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [sharePlatform, setSharePlatform] = useState<'facebook' | 'whatsapp' | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Add a mapping of food keywords to specific tips
+  const foodTips: Record<string, string> = {
+    chicken: "For juicy chicken, let it rest a few minutes after air frying before cutting.",
+    wings: "Toss wings in sauce after air frying for best crispiness.",
+    fries: "Shake the basket halfway through for evenly crispy fries.",
+    fish: "Lightly oil fish to prevent sticking and keep it moist.",
+    steak: "Let steak come to room temperature before air frying for even cooking.",
+    bacon: "Lay bacon strips in a single layer for maximum crispiness.",
+    vegetables: "Cut veggies evenly for uniform cooking.",
+    shrimp: "Don\'t overcrowd shrimp for best results.",
+    pizza: "Reheat pizza in the air fryer for a crispy crust.",
+    tofu: "Press tofu before air frying for extra crispiness.",
+  };
+
+  // Function to get a tip based on the current food name
+  function getCookingTip(foodName?: string) {
+    if (!foodName) return 'For best results, avoid overcrowding your air fryer basket!';
+    const lower = foodName.toLowerCase();
+    for (const key in foodTips) {
+      if (lower.includes(key)) return foodTips[key];
+    }
+    return 'For best results, avoid overcrowding your air fryer basket!';
+  }
 
   useEffect(() => {
     setCookingInfo(null);
@@ -117,6 +145,9 @@ export default function Home() {
         cookingTimeMinutes: parseInt(result.cookingTime, 10),
         cookingTemperatureCelsius: result.cookingTemperatureCelsius,
         identificationConfidence: 100,
+        calorieEstimate: result.calorieEstimate,
+        menuSuggestions: result.menuSuggestions,
+        drinkSuggestion: result.drinkSuggestion,
       });
     } catch (e: any) {
       setIdentificationError(e.message || 'Could not get instructions for this food.');
@@ -356,6 +387,9 @@ export default function Home() {
           cookingTimeMinutes: parseInt(result.cookingTime, 10),
           cookingTemperatureCelsius: result.cookingTemperatureCelsius,
           identificationConfidence: 100,
+          calorieEstimate: result.calorieEstimate,
+          menuSuggestions: result.menuSuggestions,
+          drinkSuggestion: result.drinkSuggestion,
         });
       } else if (imageUrl) {
         const result = await identifyFood({ photoUrl: imageUrl });
@@ -380,7 +414,7 @@ export default function Home() {
     } finally {
       setIsLoadingInstructions(false);
     }
-  }, [manualFoodName, imageUrl]);
+  }, [manualFoodName, imageUrl, setIsLoadingInstructions, setCookingInfo, setIdentificationError, toast]);
 
   const handleRestart = useCallback(() => {
     setImageUrl(null);
@@ -469,6 +503,9 @@ export default function Home() {
         cookingTimeMinutes: parseInt(result.cookingTime, 10),
         cookingTemperatureCelsius: result.cookingTemperatureCelsius,
         identificationConfidence: 100,
+        calorieEstimate: result.calorieEstimate,
+        menuSuggestions: result.menuSuggestions,
+        drinkSuggestion: result.drinkSuggestion,
       });
     } catch (e: any) {
       setIdentificationError(e.message || 'Could not get instructions for this food.');
@@ -533,17 +570,56 @@ export default function Home() {
     setShareOpen(false);
   };
 
+  // Speech-to-text logic
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+    if (!recognitionRef.current) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.lang = 'en-US';
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.maxAlternatives = 1;
+        recognitionRef.current.continuous = false; // Stop after a pause
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setManualFoodName(prev => prev ? prev + ' ' + transcript : transcript);
+        };
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+          handleUnifiedGetInstructions(); // Auto-search after speech ends
+        };
+        recognitionRef.current.onerror = () => setIsListening(false);
+      }
+    }
+  }, [handleUnifiedGetInstructions]);
+
+  const handleMicClick = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-8 bg-background">
       {/* Hidden audio element for timer sound */}
       <audio ref={timerAudioRef} src="/timer-done.mp3" preload="auto" />
       <Card className="w-full max-w-4xl rounded-2xl shadow-2xl border-2 border-primary/30 bg-card/80 backdrop-blur-md">
         <CardHeader className="text-center flex flex-col items-center gap-2 relative">
-          <span className="text-4xl">🍳</span>
-          <CardTitle className="text-3xl font-extrabold text-primary drop-shadow-sm flex items-center gap-2">
-            Air Fryer Chef
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">Upload or snap a photo of your food!</CardDescription>
+          <Image src="/airfryerlogo.png" alt="Airfryer logo" width={48} height={48} className="mx-auto" />
+          <h1 className="text-3xl font-extrabold text-orange-500 drop-shadow-md flex items-center justify-center gap-2 mt-2">
+            <span role="img" aria-label="fire" className="animate-pulse">🔥</span>
+            Air Fry Tool
+            <span role="img" aria-label="fire" className="animate-pulse">🔥</span>
+          </h1>
+          <a href="/airfryer-info" className="mt-4 inline-block px-6 py-2 rounded-full bg-orange-500 text-white font-semibold shadow hover:bg-orange-600 transition-all text-lg">
+            Learn About Air Frying
+          </a>
           {/* Info Button */}
           <div className="absolute top-2 right-2">
             <Dialog>
@@ -573,7 +649,11 @@ export default function Home() {
                         <li>Group Selection: Select food categories to filter the displayed items.</li>
                         <li>Responsive Design: Works on both desktop and mobile devices.</li>
                       </ul>
-                      <div className="mt-3 text-xs text-muted-foreground">Author: Craig Heggie<br/>URL: <a href="https://airfry.netlify.app/" className="underline" target="_blank" rel="noopener noreferrer">https://airfry.netlify.app/</a></div>
+                      <div className="mt-3 text-sm font-semibold text-muted-foreground text-center">
+                        Creator: Craig Heggie<br/>
+                        <span className="block">&copy; {new Date().getFullYear()} Craig Heggie. All rights reserved.</span>
+                        <a href="https://airfry.netlify.app/" className="underline block mt-1" target="_blank" rel="noopener noreferrer">https://airfry.netlify.app/</a>
+                      </div>
                     </div>
                   </DialogDescription>
                 </DialogHeader>
@@ -658,9 +738,71 @@ export default function Home() {
              </div>
           </div>
 
-          <TooltipProvider delayDuration={300}>
-            <div className="flex flex-col space-y-6">
-                 <Tooltip>
+          <div className="flex flex-col space-y-6">
+            {/* Manual Food Name Input Section */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold">Type or Speak Food Name</span>
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" variant="ghost" aria-label="How to use food input">
+                        <HelpCircle className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="max-w-xs text-sm">
+                        <div>
+                          Type or use the microphone to enter a food name.<br/>
+                          Example: <span className="italic">chicken wings</span>
+                        </div>
+                        <div className="mt-2">
+                          After using the microphone, you can:
+                          <ul className="list-disc pl-5 mt-1">
+                            <li>Edit the food name by typing</li>
+                            <li>Add more by using the microphone again</li>
+                            <li>Use the reset button to clear the input</li>
+                          </ul>
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">You can also upload or take a photo instead.</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex items-center gap-2">
+                <Textarea
+                  value={manualFoodName}
+                  onChange={e => setManualFoodName(e.target.value)}
+                  placeholder="e.g. chicken wings"
+                  rows={1}
+                  className="resize-y min-h-[48px] max-h-40"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? 'secondary' : 'outline'}
+                  onClick={handleMicClick}
+                  aria-label={isListening ? 'Stop listening' : 'Speak food name'}
+                >
+                  <Mic className={`h-5 w-5 ${isListening ? 'animate-pulse text-primary' : ''}`} />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setManualFoodName('')}
+                  aria-label="Reset food name input"
+                  disabled={!manualFoodName}
+                >
+                  <RotateCcwIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Get Instructions Button, History, Share, Results, Cooking Tip */}
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
                     <TooltipTrigger asChild>
                         <div className="w-full flex justify-center">
                         <Button
@@ -668,7 +810,7 @@ export default function Home() {
                             size="lg"
                             variant="default"
                             className="rounded-full px-8 py-4 text-lg font-bold shadow-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200"
-                            disabled={!imageUrl || isLoadingInstructions || isCameraInitializing}
+                            disabled={(!imageUrl && !manualFoodName.trim()) || isLoadingInstructions || isCameraInitializing}
                             aria-label="Get Cooking Instructions"
                         >
                             {isLoadingInstructions ? (
@@ -921,10 +1063,10 @@ export default function Home() {
 
                 {/* Fun Cooking Tip */}
                 <div className="mt-4 p-3 rounded-lg bg-primary/10 text-primary-foreground text-sm text-center shadow-sm">
-                  <span className="font-semibold">🍴 Cooking Tip:</span> For best results, avoid overcrowding your air fryer basket!
+                  <span className="font-semibold">🍴 Cooking Tip:</span> {getCookingTip(cookingInfo?.foodName)}
                 </div>
-            </div>
-          </TooltipProvider>
+            </TooltipProvider>
+          </div>
         </CardContent>
       </Card>
     </div>

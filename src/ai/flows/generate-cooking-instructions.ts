@@ -32,6 +32,18 @@ const GenerateCookingInstructionsOutputSchema = z.object({
   cookingTemperatureCelsius: z
     .string()
     .describe('The cooking temperature in Celsius for the food item.'),
+  calorieEstimate: z
+    .number()
+    .optional()
+    .describe('An estimated calorie count for a typical serving as a number.'),
+  menuSuggestions: z
+    .array(z.string())
+    .optional()
+    .describe('A list of 2-3 suggested menu items or side dishes that pair well with the food.'),
+  drinkSuggestion: z
+    .string()
+    .optional()
+    .describe('A suggested drink pairing for the food item.'),
 });
 
 export type GenerateCookingInstructionsOutput = z.infer<
@@ -54,20 +66,18 @@ const cookingInstructionsPrompt = ai.definePrompt({
     }),
   },
   output: {
-    schema: z.object({
-      cookingTime: z
-        .string()
-        .describe('The cooking time in minutes for the food item.'),
-      cookingTemperatureCelsius: z
-        .string()
-        .describe('The cooking temperature in Celsius for the food item.'),
-    }),
+    schema: GenerateCookingInstructionsOutputSchema,
   },
-  prompt: `You are an expert air fryer chef. Provide cooking instructions for the following food item:
+  prompt: `You are an expert air fryer chef. For the following food item, provide:
+1. Cooking time in minutes (as a number)
+2. Cooking temperature in Celsius
+3. An estimated calorie count for a typical serving (as a number)
+4. 2-3 menu suggestions or side dishes that pair well
+5. A suggested drink pairing
 
 Food Item: {{{foodName}}}
 
-Provide the cooking time in minutes and the cooking temperature in Celsius.`,
+Respond ONLY with the structured data matching the output schema. Ensure cookingTime and calorieEstimate are numbers.`
 });
 
 // Define the Genkit flow.

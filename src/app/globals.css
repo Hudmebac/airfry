@@ -4,18 +4,18 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%; /* Dark slate for base */
-    --foreground: 0 0% 98%; /* Light text */
+    --background: 0 0% 96%; /* Light grey for base */
+    --foreground: 24 9.8% 10%; /* Darker text for light mode */
 
     /* Cooking Theme Palette */
     --theme-primary: 30 90% 55%; /* Warm orange */
     --theme-primary-foreground: 0 0% 100%; /* White */
     --theme-secondary: 15 20% 90%; /* Light beige/cream */
     --theme-secondary-foreground: 24 9.8% 10%; /* Dark brown text */
-    --theme-accent: 120 30% 60%; /* Muted green */
+    --theme-accent: 30 90% 55%; /* Orange accent */
     --theme-accent-foreground: 0 0% 100%; /* White */
-    --theme-card: 240 10% 6%; /* Slightly lighter slate for cards */
-    --theme-card-foreground: 0 0% 98%; /* Light text */
+    --theme-card: 0 0% 100%; /* White card for light mode */
+    --theme-card-foreground: 24 9.8% 10%; /* Dark text */
     --theme-destructive: 0 70% 55%; /* Red for errors */
     --theme-destructive-foreground: 0 0% 100%; /* White */
     --theme-ring: 30 90% 55%; /* Orange for focus rings */
@@ -29,14 +29,14 @@
     --primary-foreground: var(--theme-primary-foreground);
     --secondary: var(--theme-secondary);
     --secondary-foreground: var(--theme-secondary-foreground);
-    --muted: 240 5% 25%; /* Muted slate */
-    --muted-foreground: 240 5% 65%; /* Lighter muted text */
+    --muted: 240 5% 85%; /* Lighter muted for light mode */
+    --muted-foreground: 24 9.8% 40%; /* Muted dark text */
     --accent: var(--theme-accent);
     --accent-foreground: var(--theme-accent-foreground);
     --destructive: var(--theme-destructive);
     --destructive-foreground: var(--theme-destructive-foreground);
-    --border: 240 5% 15%; /* Darker border */
-    --input: 240 5% 15%; /* Input background */
+    --border: 240 5% 85%; /* Lighter border for light mode */
+    --input: 0 0% 100%; /* White input background */
     --ring: var(--theme-ring);
     --radius: 0.5rem;
     --sidebar-background: 36, 47%, 98%; /* Beige */
@@ -49,39 +49,38 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
-    /* Keep dark mode consistent with the base theme for now */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: var(--theme-card);
-    --card-foreground: var(--theme-card-foreground);
-    --popover: var(--theme-card);
-    --popover-foreground: var(--theme-card-foreground);
-    --primary: var(--theme-primary);
-    --primary-foreground: var(--theme-primary-foreground);
-    --secondary: var(--theme-secondary);
-    --secondary-foreground: var(--theme-secondary-foreground);
-    --muted: 240 5% 25%;
-    --muted-foreground: 240 5% 65%;
-    --accent: var(--theme-accent);
-    --accent-foreground: var(--theme-accent-foreground);
-    --destructive: var(--theme-destructive);
-    --destructive-foreground: var(--theme-destructive-foreground);
-    --border: 240 5% 15%;
-    --input: 240 5% 15%;
-    --ring: var(--theme-ring);
+    --background: 0 0% 8%; /* Black for dark mode */
+    --foreground: 30 90% 55%; /* Orange text for dark mode */
+    --card: 0 0% 12%; /* Very dark card */
+    --card-foreground: 30 90% 55%; /* Orange text */
+    --popover: 0 0% 12%;
+    --popover-foreground: 30 90% 55%;
+    --primary: 30 90% 55%; /* Orange accent */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 18%; /* Slightly lighter black */
+    --secondary-foreground: 30 90% 55%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 30 90% 55%;
+    --accent: 30 90% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 18%;
+    --input: 0 0% 12%;
+    --ring: 30 90% 55%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 30 90% 55%;
+    --sidebar-primary: 30 90% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 30 90% 55%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 30 90% 55%;
   }
 }
 
