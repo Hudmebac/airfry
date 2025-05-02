@@ -32,6 +32,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {Textarea} from '@/components/ui/textarea';
 import {Mic, HelpCircle} from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -56,6 +57,10 @@ export default function Home() {
   const [sharePlatform, setSharePlatform] = useState<'facebook' | 'whatsapp' | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const [quantityType, setQuantityType] = useState<'count' | 'weight'>('count');
+  const [quantityValue, setQuantityValue] = useState('');
+  const [foodState, setFoodState] = useState<'fresh' | 'frozen' | 'chilled' | 'precooked'>('fresh');
+  const [stateGuidance, setStateGuidance] = useState<string | null>(null);
 
   // Add a mapping of food keywords to specific tips
   const foodTips: Record<string, string> = {
@@ -381,7 +386,7 @@ export default function Home() {
     setIdentificationError(null);
     try {
       if (foodName) {
-        const result = await generateCookingInstructions({ foodName });
+        const result = await generateCookingInstructions({ foodName, quantityType, quantityValue, foodState });
         setCookingInfo({
           foodName,
           cookingTimeMinutes: parseInt(result.cookingTime, 10),
@@ -390,6 +395,7 @@ export default function Home() {
           calorieEstimate: result.calorieEstimate,
           menuSuggestions: result.menuSuggestions,
           drinkSuggestion: result.drinkSuggestion,
+          guidance: result.guidance,
         });
       } else if (imageUrl) {
         const result = await identifyFood({ photoUrl: imageUrl });
@@ -414,7 +420,7 @@ export default function Home() {
     } finally {
       setIsLoadingInstructions(false);
     }
-  }, [manualFoodName, imageUrl, setIsLoadingInstructions, setCookingInfo, setIdentificationError, toast]);
+  }, [manualFoodName, imageUrl, setIsLoadingInstructions, setCookingInfo, setIdentificationError, toast, quantityType, quantityValue, foodState]);
 
   const handleRestart = useCallback(() => {
     setImageUrl(null);
@@ -605,6 +611,13 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    if (foodState === 'frozen') setStateGuidance('Frozen foods may require extra time and shaking halfway through.');
+    else if (foodState === 'chilled') setStateGuidance('Chilled foods may cook slightly faster than frozen.');
+    else if (foodState === 'precooked') setStateGuidance('Pre-cooked foods usually need less time, just enough to heat through and crisp.');
+    else setStateGuidance(null);
+  }, [foodState]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-8 bg-background">
       {/* Hidden audio element for timer sound */}
@@ -778,15 +791,27 @@ export default function Home() {
                   rows={1}
                   className="resize-y min-h-[48px] max-h-40"
                 />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? 'secondary' : 'outline'}
-                  onClick={handleMicClick}
-                  aria-label={isListening ? 'Stop listening' : 'Speak food name'}
-                >
-                  <Mic className={`h-5 w-5 ${isListening ? 'animate-pulse text-primary' : ''}`} />
-                </Button>
+                <div className="relative flex items-center">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isListening ? 'secondary' : 'outline'}
+                    onClick={handleMicClick}
+                    aria-label={isListening ? 'Stop listening' : 'Speak food name'}
+                    className={
+                      isListening
+                        ? 'border-2 border-primary bg-primary/20 animate-pulse shadow-lg ring-2 ring-primary'
+                        : ''
+                    }
+                  >
+                    <Mic className={`h-5 w-5 ${isListening ? 'animate-pulse text-primary' : ''}`} />
+                  </Button>
+                  {isListening && (
+                    <span className="absolute left-full ml-3 px-2 py-1 rounded bg-primary text-primary-foreground text-xs font-bold shadow animate-pulse z-10">
+                      Listening...
+                    </span>
+                  )}
+                </div>
                 <Button
                   type="button"
                   size="icon"
@@ -798,6 +823,48 @@ export default function Home() {
                   <RotateCcwIcon className="h-5 w-5" />
                 </Button>
               </div>
+              {/* Quantity/Weight and State Selection */}
+              <div className="flex flex-wrap gap-4 items-center mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">Amount:</span>
+                  <select
+                    value={quantityType}
+                    onChange={e => setQuantityType(e.target.value as 'count' | 'weight')}
+                    className="border rounded px-2 py-1 text-sm bg-background"
+                  >
+                    <option value="count">Count</option>
+                    <option value="weight">Weight</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={quantityValue}
+                    onChange={e => setQuantityValue(e.target.value)}
+                    placeholder={quantityType === 'count' ? 'e.g. 2' : 'e.g. 500'}
+                    className="w-20 border rounded px-2 py-1 text-sm bg-background"
+                  />
+                  <span className="text-muted-foreground text-xs">{quantityType === 'count' ? '' : 'g (grams)'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">State:</span>
+                  <RadioGroup value={foodState} onValueChange={v => setFoodState(v as any)} className="flex flex-row gap-2">
+                    <RadioGroupItem value="fresh" id="state-fresh" />
+                    <label htmlFor="state-fresh" className="text-sm">Fresh</label>
+                    <RadioGroupItem value="frozen" id="state-frozen" />
+                    <label htmlFor="state-frozen" className="text-sm">Frozen</label>
+                    <RadioGroupItem value="chilled" id="state-chilled" />
+                    <label htmlFor="state-chilled" className="text-sm">Chilled</label>
+                    <RadioGroupItem value="precooked" id="state-precooked" />
+                    <label htmlFor="state-precooked" className="text-sm">Pre-cooked</label>
+                  </RadioGroup>
+                </div>
+              </div>
+              {stateGuidance && (
+                <div className="mt-1 text-xs text-primary font-semibold bg-primary/10 rounded px-2 py-1">
+                  {stateGuidance}
+                </div>
+              )}
             </div>
 
             {/* Get Instructions Button, History, Share, Results, Cooking Tip */}
@@ -1020,6 +1087,19 @@ export default function Home() {
                           <ul className="list-disc list-inside text-base text-foreground">
                             {cookingInfo.menuSuggestions.map((item, index) => <li key={index}>{item}</li>)}
                           </ul>
+                        </div>
+                      )}
+                      {cookingInfo && (
+                        <div className="mb-2 flex flex-wrap gap-4 justify-center text-sm text-muted-foreground">
+                          {quantityValue && (
+                            <span><b>Amount:</b> {quantityValue} {quantityType === 'count' ? 'pcs' : 'g'}</span>
+                          )}
+                          <span><b>State:</b> {foodState.charAt(0).toUpperCase() + foodState.slice(1)}</span>
+                        </div>
+                      )}
+                      {cookingInfo?.guidance && (
+                        <div className="mb-2 p-2 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-200 text-xs font-semibold text-center">
+                          {cookingInfo.guidance}
                         </div>
                       )}
                     </div>

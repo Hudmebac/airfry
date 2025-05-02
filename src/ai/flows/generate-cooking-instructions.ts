@@ -18,6 +18,9 @@ import {z} from 'genkit';
 // Define the input schema for the flow.
 const GenerateCookingInstructionsInputSchema = z.object({
   foodName: z.string().describe('The name of the food item to cook.'),
+  quantityType: z.enum(['count', 'weight']).optional().describe('Whether the user specified a count (e.g. 2 pieces) or weight (e.g. 500g).'),
+  quantityValue: z.string().optional().describe('The value for count or weight as entered by the user.'),
+  foodState: z.enum(['fresh', 'frozen', 'chilled', 'precooked']).optional().describe('The state of the food: fresh, frozen, chilled, or pre-cooked.'),
 });
 
 export type GenerateCookingInstructionsInput = z.infer<
@@ -44,6 +47,7 @@ const GenerateCookingInstructionsOutputSchema = z.object({
     .string()
     .optional()
     .describe('A suggested drink pairing for the food item.'),
+  guidance: z.string().optional().describe('Special guidance or tips based on the amount or state of the food.'),
 });
 
 export type GenerateCookingInstructionsOutput = z.infer<
@@ -61,9 +65,7 @@ export async function generateCookingInstructions(
 const cookingInstructionsPrompt = ai.definePrompt({
   name: 'cookingInstructionsPrompt',
   input: {
-    schema: z.object({
-      foodName: z.string().describe('The name of the food item to cook.'),
-    }),
+    schema: GenerateCookingInstructionsInputSchema,
   },
   output: {
     schema: GenerateCookingInstructionsOutputSchema,
@@ -74,8 +76,13 @@ const cookingInstructionsPrompt = ai.definePrompt({
 3. An estimated calorie count for a typical serving (as a number)
 4. 2-3 menu suggestions or side dishes that pair well
 5. A suggested drink pairing
+6. Special guidance or tips if relevant, especially if the food is frozen, chilled, or pre-cooked, or if the user specified a particular amount (count or weight).
 
 Food Item: {{{foodName}}}
+Amount: {{{quantityValue}}} {{{quantityType}}}
+State: {{{foodState}}}
+
+If the food is frozen, chilled, or pre-cooked, or if the amount is unusual, adjust the cooking time and temperature accordingly and provide guidance in the 'guidance' field. If no special guidance is needed, leave 'guidance' empty or omit it.
 
 Respond ONLY with the structured data matching the output schema. Ensure cookingTime and calorieEstimate are numbers.`
 });
