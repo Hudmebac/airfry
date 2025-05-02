@@ -22,12 +22,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // Accessibility: Dark/Light mode toggle
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
 
+  // On mount, check localStorage for theme, otherwise default to dark
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        setTheme(savedTheme);
+      } else {
+        setTheme('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+  }, []);
+
+  // Apply theme to document and persist to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       document.documentElement.classList.remove('dark', 'light');
       document.documentElement.classList.add(theme);
+      localStorage.setItem('theme', theme);
     }
   }, [theme]);
 

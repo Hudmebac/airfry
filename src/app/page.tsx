@@ -924,146 +924,117 @@ export default function Home() {
                   </ShareDialogContent>
                 </ShareDialog>
 
-                <div className="p-4 border-2 border-secondary/30 rounded-xl bg-secondary/60 min-h-[220px] flex flex-col justify-center shadow-sm">
-                {isLoadingInstructions ? (
-                    <p className="text-center text-muted-foreground">Checking the cookbook...</p>
-                ) : identificationError ? (
+                <div className="p-4 border-2 border-secondary/30 rounded-2xl bg-background shadow-lg min-h-[220px] flex flex-col justify-center gap-2">
+                  <h2 className="text-2xl font-extrabold text-primary text-center mb-4 tracking-tight flex items-center justify-center gap-2">
+                    🍽️ Cooking Results
+                  </h2>
+                  {isLoadingInstructions ? (
+                    <p className="text-center text-muted-foreground text-lg font-medium">Checking the cookbook...</p>
+                  ) : identificationError ? (
                     <div className="text-center space-y-2">
-                        <p className="text-destructive px-4 font-semibold">{identificationError}</p>
-                        <p className="text-sm text-muted-foreground">(Confidence: 0%)</p>
+                      <p className="text-destructive px-4 font-semibold text-lg">{identificationError}</p>
+                      <p className="text-sm text-muted-foreground">(Confidence: 0%)</p>
                     </div>
-                ) : cookingInfo ? (
-                    <div className="space-y-3">
-                    <h2 className="text-xl font-bold text-secondary text-center mb-1 flex items-center gap-2">{cookingInfo.foodName} <span>🥘</span></h2>
-                     {cookingInfo.identificationConfidence !== undefined && cookingInfo.identificationConfidence !== null && (
-                        <p className="text-center text-sm text-secondary-foreground mb-3">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span className="cursor-help underline decoration-dotted">Confidence: {cookingInfo.identificationConfidence}%</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Estimated confidence in food identification (0-100%).</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </p>
-                     )}
-                     <p>
-                       <Tooltip>
-                         <TooltipTrigger asChild>
-                            <span className="font-semibold cursor-help underline decoration-dotted decoration-muted-foreground">Time:</span>
-                         </TooltipTrigger>
-                         <TooltipContent>
-                           <p>Cooking Time (Minutes)</p>
-                         </TooltipContent>
-                       </Tooltip>
-                       {" "}{cookingInfo.cookingTimeMinutes} min
-                     </p>
-                     {/* Timer Button and UI */}
-                     {typeof cookingInfo.cookingTimeMinutes === 'number' && (
-                       <div className="mt-2">
-                         {!timerActive && timerSeconds === null && (
-                           <Button size="sm" variant="secondary" onClick={handleStartTimer}>
-                             Start Timer
-                           </Button>
-                         )}
-                         {timerSeconds !== null && (
-                           <div className="flex flex-col items-center gap-2 mt-2 w-full">
-                             <span className="font-mono text-lg">
-                               {`${Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:${(timerSeconds % 60).toString().padStart(2, '0')}`}
-                             </span>
-                             {/* Progress Bar */}
-                             {cookingInfo?.cookingTimeMinutes && (
-                               <div className="w-full h-3 bg-muted rounded-full overflow-hidden border border-secondary/40">
-                                 <div
-                                   className="h-full bg-primary transition-all duration-500"
-                                   style={{
-                                     width: `${Math.max(0, Math.min(100, (timerSeconds / (cookingInfo.cookingTimeMinutes * 60)) * 100))}%`,
-                                   }}
-                                 />
-                               </div>
-                             )}
-                             <div className="flex items-center gap-2 mt-1">
-                               {timerActive ? (
-                                 <Button size="sm" variant="outline" onClick={handlePauseTimer}>Pause</Button>
-                               ) : timerSeconds > 0 ? (
-                                 <Button size="sm" variant="outline" onClick={handleResumeTimer}>Resume</Button>
-                               ) : null}
-                               <Button size="sm" variant="ghost" onClick={handleResetTimer}>Reset</Button>
-                             </div>
-                           </div>
-                         )}
-                         {timerSeconds === 0 && (
-                           <div className="text-green-600 font-bold mt-2">Time's up!</div>
-                         )}
-                       </div>
-                     )}
-                     <p>
-                       <Tooltip>
-                         <TooltipTrigger asChild>
-                            <span className="font-semibold cursor-help underline decoration-dotted decoration-muted-foreground">Temp:</span>
-                         </TooltipTrigger>
-                         <TooltipContent>
-                           <p>Cooking Temperature (°C)</p>
-                         </TooltipContent>
-                       </Tooltip>
-                       {" "}{cookingInfo.cookingTemperatureCelsius} °C
-                     </p>
-                    {cookingInfo.calorieEstimate && (
-                        <p>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                            <span className="font-semibold cursor-help underline decoration-dotted decoration-muted-foreground">Est. Calories:</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                            <p>Estimated calories per typical serving</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        {" "}{cookingInfo.calorieEstimate} kcal
-                        </p>
-                    )}
-                    {cookingInfo.menuSuggestions && cookingInfo.menuSuggestions.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2">
+                  ) : cookingInfo ? (
+                    <div className="space-y-4">
+                      <div className="rounded-xl bg-muted/60 border border-secondary/40 p-3 flex flex-col items-center shadow-sm">
+                        <h3 className="text-xl font-bold text-primary text-center flex items-center gap-2 mb-1">{cookingInfo.foodName} <span>🥘</span></h3>
+                        {cookingInfo.identificationConfidence !== undefined && cookingInfo.identificationConfidence !== null && (
+                          <p className="text-center text-sm text-secondary-foreground mb-2">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="font-semibold cursor-help underline decoration-dotted decoration-muted-foreground">Menu Ideas:</span>
+                                <span className="cursor-help underline decoration-dotted">Confidence: {cookingInfo.identificationConfidence}%</span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Suggested side dishes or pairings</p>
+                                <p>Estimated confidence in food identification (0-100%).</p>
                               </TooltipContent>
                             </Tooltip>
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex flex-col items-center">
+                          <span className="font-semibold text-primary text-lg">Time</span>
+                          <span className="text-2xl font-mono font-bold text-foreground">{cookingInfo.cookingTimeMinutes} min</span>
+                        </div>
+                        <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 p-3 flex flex-col items-center">
+                          <span className="font-semibold text-orange-700 dark:text-orange-300 text-lg">Temp</span>
+                          <span className="text-2xl font-mono font-bold text-foreground">{cookingInfo.cookingTemperatureCelsius} °C</span>
+                        </div>
+                        {cookingInfo.calorieEstimate && (
+                          <div className="rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 p-3 flex flex-col items-center">
+                            <span className="font-semibold text-green-700 dark:text-green-300 text-lg">Est. Calories</span>
+                            <span className="text-xl font-mono font-bold text-foreground">{cookingInfo.calorieEstimate} kcal</span>
                           </div>
-                          <ul className="list-disc list-inside text-sm">
+                        )}
+                        {cookingInfo.drinkSuggestion && (
+                          <div className="rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 p-3 flex flex-col items-center">
+                            <span className="font-semibold text-blue-700 dark:text-blue-300 text-lg">Drink Pairing</span>
+                            <span className="text-base font-medium text-foreground">{cookingInfo.drinkSuggestion}</span>
+                          </div>
+                        )}
+                      </div>
+                      {typeof cookingInfo.cookingTimeMinutes === 'number' && (
+                        <div className="mt-2 flex flex-col items-center">
+                          {!timerActive && timerSeconds === null && (
+                            <Button size="sm" variant="secondary" onClick={handleStartTimer}>
+                              Start Timer
+                            </Button>
+                          )}
+                          {timerSeconds !== null && (
+                            <div className="flex flex-col items-center gap-2 mt-2 w-full">
+                              <span className="font-mono text-lg">
+                                {`${Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:${(timerSeconds % 60).toString().padStart(2, '0')}`}
+                              </span>
+                              {/* Progress Bar */}
+                              {cookingInfo?.cookingTimeMinutes && (
+                                <div className="w-full h-3 bg-muted rounded-full overflow-hidden border border-secondary/40">
+                                  <div
+                                    className="h-full bg-primary transition-all duration-500"
+                                    style={{
+                                      width: `${Math.max(0, Math.min(100, (timerSeconds / (cookingInfo.cookingTimeMinutes * 60)) * 100))}%`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                {timerActive ? (
+                                  <Button size="sm" variant="outline" onClick={handlePauseTimer}>Pause</Button>
+                                ) : timerSeconds > 0 ? (
+                                  <Button size="sm" variant="outline" onClick={handleResumeTimer}>Resume</Button>
+                                ) : null}
+                                <Button size="sm" variant="ghost" onClick={handleResetTimer}>Reset</Button>
+                              </div>
+                            </div>
+                          )}
+                          {timerSeconds === 0 && (
+                            <div className="text-green-600 font-bold mt-2">Time's up!</div>
+                          )}
+                        </div>
+                      )}
+                      {cookingInfo.menuSuggestions && cookingInfo.menuSuggestions.length > 0 && (
+                        <div className="rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-yellow-700 dark:text-yellow-300 text-lg">Menu Ideas</span>
+                          </div>
+                          <ul className="list-disc list-inside text-base text-foreground">
                             {cookingInfo.menuSuggestions.map((item, index) => <li key={index}>{item}</li>)}
                           </ul>
                         </div>
-                    )}
-                    {cookingInfo.drinkSuggestion && (
-                        <p>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                            <span className="font-semibold cursor-help underline decoration-dotted decoration-muted-foreground">Drink Pairing:</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                            <p>Suggested drink</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        {" "}{cookingInfo.drinkSuggestion}
-                        </p>
-                    )}
+                      )}
                     </div>
-                ) : (
-                    <p className="text-center text-muted-foreground">
-                        {isCameraInitializing ? "Initializing camera..." :
+                  ) : (
+                    <p className="text-center text-muted-foreground text-base">
+                      {isCameraInitializing ? "Initializing camera..." :
                         (hasCameraPermission === null ? "Checking camera permissions..." :
-                        (imageUrl ? "Ready to get instructions!" : (hasCameraPermission ? "Take or upload a photo to begin." : "Enable camera access to take photos.")))}
+                          (imageUrl ? "Ready to get instructions!" : (hasCameraPermission ? "Take or upload a photo to begin." : "Enable camera access to take photos.")))}
                     </p>
-                )}
+                  )}
                 </div>
 
                 {/* Fun Cooking Tip */}
-                <div className="mt-4 p-3 rounded-lg bg-primary/10 text-primary-foreground text-sm text-center shadow-sm">
-                  <span className="font-semibold">🍴 Cooking Tip:</span> {getCookingTip(cookingInfo?.foodName)}
+                <div className="mt-4 p-4 rounded-xl bg-primary/20 border border-primary/40 text-primary-foreground text-base text-center shadow-md font-semibold">
+                  <span className="font-bold">🍴 Cooking Tip:</span> {getCookingTip(cookingInfo?.foodName)}
                 </div>
             </TooltipProvider>
           </div>
